@@ -1,0 +1,67 @@
+[
+    {
+        "task": "Technological Navigation",
+        "definition": "operating or troubleshooting technology, including hardware and software",
+        "examples": ["using software, apps, devices, websites or GUIs", "diagnosing a technical issue", "providing instructions for digital applications"]
+    },
+    {
+        "task": "Physical Navigation",
+        "definition": "moving or acting in physical environments",
+        "examples": ["autonomous driving", "giving driving instructions", "giving public transit instructions", "robots and embodied agents"]
+    },
+    {
+        "task": "Obtain and Understand Information",
+        "definition": "seeking out and making sense of information",
+        "examples": ["answering questions about the digital or physical world", "illustrating an unfamiliar concept", "informative captioning"]
+    },
+    {
+        "task": "Document and Organize Information",
+        "definition": "recording and structuring information for future reference",
+        "examples": ["visual study aids", "summarizing content", "note-taking", "record-keeping", "digitizing documents"]
+    },
+    {
+        "task": "Cooperation, Coordination, and Negotiation",
+        "definition": "working together to achieve a common goal",
+        "examples": ["analyzing team behavior", "social interaction understanding", "group coordination", "negotiation support"]
+    },
+    {
+        "task": "Communication Tasks",
+        "definition": "expressing an idea to others",
+        "examples": ["creating visual aids for a presentation", "designing an infographic", "translating to/from sign language", "talking-head/portrait video generation"]
+    },
+    {
+        "task": "Teaching, Assessing, and Learning Cognitive Skills",
+        "definition": "teaching, assessing, and learning cognitive skills",
+        "examples": ["generating a tutoring video", "providing coding feedback", "automated grading"]
+    },
+    {
+        "task": "Teaching, Assessing, and Learning Physical Skills",
+        "definition": "teaching, assessing, and learning physical skills",
+        "examples": ["illustrating instructions for a musical instrument", "providing sports coaching feedback", "correcting exercise form"]
+    },
+    {
+        "task": "Creative Tasks",
+        "definition": "producing visual, textual, auditory, and other creative outputs",
+        "examples": ["photo/video/audio editing/generation", "stylizing photos/videos"]
+    },
+    {
+        "task": "Caregiving and Domestic Labor",
+        "definition": "caring for others and performing household tasks",
+        "examples": ["illustrating cooking instructions", "childcare/eldercare/patient monitoring", "supporting care workers"]
+    },
+    {
+        "task": "Scheduling and Planning",
+        "definition": "managing time and planning activities in advance",
+        "examples": ["nutritional planning", "civic planning", "forecasting"]
+    },
+    {
+        "task": "Shopping and Entertainment",
+        "definition": "engaging in online or in-person shopping and leisure activities",
+        "examples": ["clothing try-on", "generating sports content", "social media filters"]
+    },
+    {
+        "task": "Specialized Visual Generation and Analysis",
+        "definition": "visual generation and analysis in specialized professional domains",
+        "examples": ["architectural drafting", "deepfake detection", "medical/agricultural/meteorological/satellite/industrial/scientific image analysis"]
+    }
+]
