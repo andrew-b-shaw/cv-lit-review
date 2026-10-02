@@ -12,7 +12,7 @@
     {
         "task": "Obtain and Understand Information",
         "definition": "seeking out and making sense of information",
-        "examples": ["answering questions about the digital or physical world", "illustrating an unfamiliar concept", "informative captioning"]
+        "examples": ["answering information-seeking user questions about an image", "illustrating an unfamiliar concept", "informative captioning"]
     },
     {
         "task": "Document and Organize Information",
@@ -27,7 +27,7 @@
     {
         "task": "Communication Tasks",
         "definition": "expressing an idea to others",
-        "examples": ["creating visual aids for a presentation", "designing an infographic", "translating to/from sign language", "talking-head/portrait video generation"]
+        "examples": ["creating visual aids for a presentation", "designing an infographic", "translating to/from sign language"]
     },
     {
         "task": "Teaching, Assessing, and Learning Cognitive Skills",

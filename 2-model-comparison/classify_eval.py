@@ -65,11 +65,12 @@ def load_papers(path=DATA_PATH):
 PROMPT_TEMPLATE = """You are classifying computer vision research papers by the downstream human tasks they mention or aim to support.
 The purpose of this task is to understand the distribution of downstream applications that computer vision researchers are focused on.
 Therefore, you should only choose categories that are explicitly mentioned in the paper's title and abstract. 
-Be conservative in your selection: do not infer tasks if they are not explicitly mentioned in the title or abstract.
+Do not infer tasks if they are not explicitly mentioned in the title or abstract.
 
 Each category below has a definition and example tasks. The examples are illustrative, not exhaustive.
 Papers should only be included in a category if they help HUMANS in these tasks. A paper on LLM coordination does not belong in the coordination category.
 Pay close attention to the definitions and examples provided for each category.
+A paper might mention multiple categories. Consider each category independently, and re-check for relevant categories after outputting your top category.
 
 {categories}
 
@@ -196,6 +197,9 @@ def score(papers, preds):
         "top1_in_gold": float(np.mean([bool(pred) and pred[0] in p.gold for p, pred in zip(papers, preds)])),
         "micro_precision": precision_score(y_true, y_pred, average="micro", zero_division=0),
         "micro_recall": recall_score(y_true, y_pred, average="micro", zero_division=0),
+        # Average share of each paper's hand labels that were found.
+        "sample_recall": recall_score(y_true, y_pred, average="samples", zero_division=0),
+        "macro_recall": recall_score(y_true, y_pred, average="macro", labels=in_gold, zero_division=0),
         "micro_f1": f1_score(y_true, y_pred, average="micro", zero_division=0),
         "macro_f1": f1_score(y_true, y_pred, average="macro", labels=in_gold, zero_division=0),
     }
