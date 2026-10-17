@@ -1,7 +1,12 @@
 """Compare classifiers (e.g. LLMs) on the hand-labeled downstream-task categories.
 
-Each paper (title + abstract) gets up to 3 categories, scored against the
-category_1..category_3 columns of taxonomy_labels_hand_labeled.csv.
+Each paper (title + abstract, plus the introduction when the dataset has an
+"introduction" column) gets up to 3 categories, scored against its
+category_1..category_3 columns. A paper with no labels (or labeled "Unclear") has
+no downstream task: it doesn't count toward recall, and the right answer is "Unclear".
+
+Each model's per-paper predictions go to <results-dir>/<model>_predictions.csv and
+its scores to <results-dir>/<model>_summary.json.
 
 Models are defined in classifiers.py; add new ones to MODELS there.
 
@@ -9,6 +14,7 @@ Usage:
     python classify_eval.py                       # run every model in MODELS
     python classify_eval.py --models qwen3.8-flash llama-3.3-70b
     python classify_eval.py --limit 10
+    python classify_eval.py --data ../1-paper-scraping/pre_audit.csv --results-dir results/pre_audit
 """
 
 import argparse
@@ -16,6 +22,7 @@ import csv
 import json
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -27,7 +34,6 @@ from classifiers import MODELS
 DATA_PATH = Path(__file__).parent / "taxonomy_labels_hand_labeled.csv"
 TAXONOMY_PATH = Path(__file__).parent / "task_taxonomy.json"
 RESULTS_DIR = Path(__file__).parent / "results"
-SUMMARY_PATH = RESULTS_DIR / "summary.csv"
 MAX_CATEGORIES = 3
 
 with open(TAXONOMY_PATH, encoding="utf-8") as _f:
@@ -42,11 +48,13 @@ LABELS = CATEGORIES + [UNCLEAR]
 class Paper:
     title: str
     abstract: str
-    gold: set[str]
+    gold: set[str]  # hand-labeled categories; empty when no downstream task applies
+    introduction: str = ""
 
 
 def load_papers(path=DATA_PATH):
-    with open(path, encoding="utf-8", newline="") as f:
+    # utf-8-sig: CSVs saved from Excel start with a byte-order mark.
+    with open(path, encoding="utf-8-sig", newline="") as f:
         rows = list(csv.DictReader(f))
     papers = []
     for r in rows:
@@ -54,7 +62,7 @@ def load_papers(path=DATA_PATH):
         unknown = gold - set(LABELS)
         if unknown:
             raise ValueError(f"Unknown label(s) {unknown} for {r['title']!r}")
-        papers.append(Paper(r["title"], r["abstract"], gold))
+        papers.append(Paper(r["title"], r["abstract"], gold - {UNCLEAR}, r.get("introduction", "")))
     return papers
 
 
@@ -64,8 +72,8 @@ def load_papers(path=DATA_PATH):
 
 PROMPT_TEMPLATE = """You are classifying computer vision research papers by the downstream human tasks they mention or aim to support.
 The purpose of this task is to understand the distribution of downstream applications that computer vision researchers are focused on.
-Therefore, you should only choose categories that are explicitly mentioned in the paper's title and abstract. 
-Do not infer tasks if they are not explicitly mentioned in the title or abstract.
+Therefore, you should only choose categories that are explicitly mentioned in the paper's {sources_and}. 
+Do not infer tasks if they are not explicitly mentioned in the {sources_or}.
 
 Each category below has a definition and example tasks. The examples are illustrative, not exhaustive.
 Papers should only be included in a category if they help HUMANS in these tasks. A paper on LLM coordination does not belong in the coordination category.
@@ -78,9 +86,7 @@ Choose between 1 and {max_categories} categories from the list above that best d
 
 Respond with only a JSON array of category names copied exactly from the list, most relevant first. Example: ["Creative Tasks", "Communication Tasks"]
 
-Title: {title}
-
-Abstract: {abstract}"""
+{paper}"""
 
 
 def format_taxonomy():
@@ -90,13 +96,17 @@ def format_taxonomy():
     )
 
 
-def build_prompt(title, abstract):
+def build_prompt(title, abstract, introduction=""):
+    paper = f"Title: {title}\n\nAbstract: {abstract}"
+    if introduction:
+        paper += f"\n\nIntroduction: {introduction}"
     return PROMPT_TEMPLATE.format(
         categories=format_taxonomy(),
         max_categories=MAX_CATEGORIES,
         unclear=UNCLEAR,
-        title=title,
-        abstract=abstract,
+        sources_and="title, abstract, and introduction" if introduction else "title and abstract",
+        sources_or="title, abstract, or introduction" if introduction else "title or abstract",
+        paper=paper,
     )
 
 
@@ -154,9 +164,12 @@ DECISION_OPTIONS = [
 _LABEL_BY_LETTER = {o["label"]: o["key"] for o in DECISION_OPTIONS}
 
 
-def build_decision_messages(title, abstract):
+def build_decision_messages(title, abstract, introduction=""):
+    state = f"Title: {title}\n\nAbstract: {abstract}"
+    if introduction:
+        state += f"\n\nIntroduction: {introduction}"
     task = {
-        "state": f"Title: {title}\n\nAbstract: {abstract}",
+        "state": state,
         "question": DECISION_QUESTION,
         "options": DECISION_OPTIONS,
     }
@@ -169,9 +182,9 @@ def parse_decision(text):
     return [label] if label else []
 
 
-# prompt_style -> (title, abstract -> chat messages, reply -> categories)
+# prompt_style -> (title, abstract, introduction -> chat messages, reply -> categories)
 PROMPT_STYLES = {
-    "default": (lambda title, abstract: [{"role": "user", "content": build_prompt(title, abstract)}], parse_categories),
+    "default": (lambda *paper: [{"role": "user", "content": build_prompt(*paper)}], parse_categories),
     "decision": (build_decision_messages, parse_decision),
 }
 
@@ -180,29 +193,67 @@ PROMPT_STYLES = {
 # Evaluation
 # --------------------------------------------------------------------------
 
-def score(papers, preds):
-    """Multi-label metrics over sets of labels (order is ignored, except top1_in_gold)."""
-    mlb = MultiLabelBinarizer(classes=LABELS)
+def _binarize(papers, preds):
+    """Gold and predicted label matrices over the real categories.
+
+    "Unclear" means "no categories" on both sides: a paper with no downstream task
+    has no gold labels (so it adds nothing to recall), and answering "Unclear" is
+    predicting nothing (so it's correct on such papers and isn't a false positive).
+    """
+    mlb = MultiLabelBinarizer(classes=CATEGORIES)
     y_true = mlb.fit_transform([p.gold for p in papers])
-    y_pred = mlb.transform(preds)
-    # Macro F1 only averages over categories that appear in the hand labels.
+    y_pred = mlb.transform([set(pred) - {UNCLEAR} for pred in preds])
+    return y_true, y_pred
+
+
+def score(papers, preds):
+    """Multi-label metrics over sets of labels (order is ignored, except top1_in_gold).
+
+    Paper-averaged recall, any_overlap and top1_in_gold only cover papers that have
+    labels; unclear_accuracy covers the ones that don't.
+    """
+    y_true, y_pred = _binarize(papers, preds)
+    labeled = y_true.any(axis=1)
+    # Macro scores only average over categories that appear in the hand labels.
     in_gold = np.flatnonzero(y_true.sum(axis=0))
     return {
         "n": len(papers),
+        "n_labeled": int(labeled.sum()),
+        "n_unlabeled": int((~labeled).sum()),
         "exact_match": accuracy_score(y_true, y_pred),
-        "jaccard": jaccard_score(y_true, y_pred, average="samples", zero_division=0),
-        # Not in sklearn: share of papers with at least one correct category,
+        # zero_division=1: no gold labels and no predictions is a perfect match.
+        "jaccard": jaccard_score(y_true, y_pred, average="samples", zero_division=1),
+        # Not in sklearn: share of labeled papers with at least one correct category,
         # and share whose first predicted category is correct.
-        "any_overlap": float((y_true & y_pred).any(axis=1).mean()),
-        "top1_in_gold": float(np.mean([bool(pred) and pred[0] in p.gold for p, pred in zip(papers, preds)])),
+        "any_overlap": float((y_true & y_pred).any(axis=1)[labeled].mean()),
+        "top1_in_gold": float(np.mean([bool(pred) and pred[0] in p.gold for p, pred in zip(papers, preds) if p.gold])),
         "micro_precision": precision_score(y_true, y_pred, average="micro", zero_division=0),
         "micro_recall": recall_score(y_true, y_pred, average="micro", zero_division=0),
-        # Average share of each paper's hand labels that were found.
-        "sample_recall": recall_score(y_true, y_pred, average="samples", zero_division=0),
+        # Average share of each labeled paper's hand labels that were found.
+        "sample_recall": recall_score(y_true[labeled], y_pred[labeled], average="samples", zero_division=0),
         "macro_recall": recall_score(y_true, y_pred, average="macro", labels=in_gold, zero_division=0),
         "micro_f1": f1_score(y_true, y_pred, average="micro", zero_division=0),
         "macro_f1": f1_score(y_true, y_pred, average="macro", labels=in_gold, zero_division=0),
+        # Share of papers with no downstream task where the model answered "Unclear".
+        "unclear_accuracy": float((~y_pred.any(axis=1))[~labeled].mean()) if (~labeled).any() else None,
     }
+
+
+def per_category(papers, preds):
+    """Recall and precision for each category that is labeled or predicted."""
+    y_true, y_pred = _binarize(papers, preds)
+    out = {}
+    for i, c in enumerate(CATEGORIES):
+        labeled, predicted, found = int(y_true[:, i].sum()), int(y_pred[:, i].sum()), int((y_true[:, i] & y_pred[:, i]).sum())
+        if labeled or predicted:
+            out[c] = {
+                "labeled": labeled,
+                "predicted": predicted,
+                "found": found,
+                "recall": found / labeled if labeled else None,
+                "precision": found / predicted if predicted else None,
+            }
+    return out
 
 
 def run_model(clf, papers):
@@ -216,7 +267,7 @@ def run_model(clf, papers):
     for i, p in enumerate(papers, 1):
         reply, error = "", ""
         try:
-            reply = clf.classify(build_messages(p.title, p.abstract))
+            reply = clf.classify(build_messages(p.title, p.abstract, p.introduction))
         except Exception as e:
             error = f"{type(e).__name__}: {e}"
             print(f"\n  error on {p.title[:50]!r}: {error}")
@@ -225,9 +276,9 @@ def run_model(clf, papers):
         records.append({
             "title": p.title,
             "abstract": p.abstract,
-            "gold": "; ".join(sorted(p.gold)),
+            "gold": "; ".join(sorted(p.gold)) or UNCLEAR,
             "pred": "; ".join(pred),
-            "exact_match": set(pred) == p.gold,
+            "exact_match": set(pred) - {UNCLEAR} == p.gold,
             "raw_reply": reply,
             "error": error,
         })
@@ -236,9 +287,9 @@ def run_model(clf, papers):
     return preds, records
 
 
-def save_predictions(name, records):
-    path = RESULTS_DIR / f"{name}_predictions.csv"
-    RESULTS_DIR.mkdir(exist_ok=True)
+def save_predictions(name, records, results_dir=RESULTS_DIR):
+    path = results_dir / f"{name}_predictions.csv"
+    results_dir.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(records[0]))
         w.writeheader()
@@ -266,10 +317,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--models", nargs="+", default=list(MODELS), choices=list(MODELS))
     parser.add_argument("--limit", type=int, help="only use the first N papers")
+    parser.add_argument("--data", type=Path, default=DATA_PATH, help="hand-labeled CSV to evaluate on")
+    parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR, help="where to write predictions and summaries")
     args = parser.parse_args()
 
     # Check before calling any models, so a locked file doesn't throw away a finished run.
-    outputs = [SUMMARY_PATH] + [RESULTS_DIR / f"{name}_predictions.csv" for name in args.models]
+    outputs = [args.results_dir / f"{name}_{kind}" for name in args.models for kind in ("predictions.csv", "summary.json")]
     locked = locked_files(outputs)
     if locked:
         print("These files are open in another program. Close them and run again:")
@@ -277,32 +330,32 @@ def main():
             print(f"  {path}")
         raise SystemExit(1)
 
-    papers = load_papers()
+    papers = load_papers(args.data)
     if args.limit:
         papers = papers[: args.limit]
+    with_intro = any(p.introduction for p in papers)
 
-    summary = []
     for name in args.models:
-        print(f"\nModel: {name} ({len(papers)} papers)")
-        preds, records = run_model(MODELS[name], papers)
-        save_predictions(name, records)
+        clf = MODELS[name]
+        print(f"\nModel: {name} ({len(papers)} papers{', with introductions' if with_intro else ''})")
+        preds, records = run_model(clf, papers)
+        save_predictions(name, records, args.results_dir)
         scores = score(papers, preds)
         for metric, value in scores.items():
             print(f"  {metric:<16} {value:.3f}" if isinstance(value, float) else f"  {metric:<16} {value}")
-        summary.append({"model": name, **scores})
-
-    # Merge into the existing summary so running a subset of models keeps the rest.
-    rows = {}
-    if SUMMARY_PATH.exists():
-        with open(SUMMARY_PATH, encoding="utf-8", newline="") as f:
-            rows = {r["model"]: r for r in csv.DictReader(f)}
-    rows.update({r["model"]: r for r in summary})
-    RESULTS_DIR.mkdir(exist_ok=True)
-    with open(SUMMARY_PATH, "w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(summary[0]))
-        w.writeheader()
-        w.writerows(rows.values())
-    print(f"\nSaved scores to {SUMMARY_PATH} and predictions to {RESULTS_DIR}")
+        summary = {
+            "model": name,
+            "model_id": getattr(clf, "model", None),
+            "dataset": str(args.data.resolve()),
+            "prompt_includes_introduction": with_intro,
+            "run_at": datetime.now().isoformat(timespec="seconds"),
+            "errors": sum(bool(r["error"]) for r in records),
+            "metrics": scores,
+            "per_category": per_category(papers, preds),
+        }
+        path = args.results_dir / f"{name}_summary.json"
+        path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(f"\nSaved predictions and summaries to {args.results_dir}")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
 __pycache__
 .env
 .venv
+1-paper-scraping/introductions.jsonl
+1-paper-scraping/add_introductions.log

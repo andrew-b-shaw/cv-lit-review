@@ -7,7 +7,7 @@
     {
         "task": "Physical Navigation",
         "definition": "moving or acting in physical environments",
-        "examples": ["autonomous driving", "giving driving instructions", "giving public transit instructions", "robots and embodied agents"]
+        "examples": ["autonomous driving", "driving instructions", "3D scene understanding"]
     },
     {
         "task": "Obtain and Understand Information",
@@ -17,12 +17,12 @@
     {
         "task": "Document and Organize Information",
         "definition": "recording and structuring information for future reference",
-        "examples": ["visual study aids", "summarizing content", "note-taking", "record-keeping", "digitizing documents"]
+        "examples": ["visual study aids", "summarizing content", "note-taking", "digitizing documents"]
     },
     {
         "task": "Cooperation, Coordination, and Negotiation",
         "definition": "working together to achieve a common goal",
-        "examples": ["analyzing team behavior", "social interaction understanding", "group coordination", "negotiation support"]
+        "examples": ["analyzing team behavior", "social interaction understanding", "negotiation support"]
     },
     {
         "task": "Communication Tasks",
@@ -47,7 +47,7 @@
     {
         "task": "Caregiving and Domestic Labor",
         "definition": "caring for others and performing household tasks",
-        "examples": ["illustrating cooking instructions", "childcare/eldercare/patient monitoring", "supporting care workers"]
+        "examples": ["illustrating cooking instructions", "assistive technologies", "child/elder/patient monitoring"]
     },
     {
         "task": "Scheduling and Planning",
@@ -57,11 +57,11 @@
     {
         "task": "Shopping and Entertainment",
         "definition": "engaging in online or in-person shopping and leisure activities",
-        "examples": ["clothing try-on", "generating sports content", "social media filters"]
+        "examples": ["clothing try-on", "augmented reality", "social media filters"]
     },
     {
         "task": "Specialized Visual Generation and Analysis",
         "definition": "visual generation and analysis in specialized professional domains",
-        "examples": ["architectural drafting", "deepfake detection", "medical/agricultural/meteorological/satellite/industrial/scientific image analysis"]
+        "examples": ["architectural drafting", "deepfake detection", "medical/agricultural/meteorological/satellite/industrial/scientific image analysis for non-computer vision applications"]
     }
 ]

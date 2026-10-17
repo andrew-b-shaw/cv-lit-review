@@ -1,0 +1,103 @@
+{
+  "model": "qwen3.8-flash",
+  "model_id": "Qwen/Qwen3.8-Flash",
+  "dataset": "C:\\Users\\andre\\Code\\cv-lit-review\\1-paper-scraping\\pre_audit.csv",
+  "prompt_includes_introduction": true,
+  "run_at": "2026-10-17T12:07:22",
+  "errors": 0,
+  "metrics": {
+    "n": 60,
+    "n_labeled": 46,
+    "n_unlabeled": 14,
+    "exact_match": 0.5666666666666667,
+    "jaccard": 0.6583333333333333,
+    "any_overlap": 0.8260869565217391,
+    "top1_in_gold": 0.782608695652174,
+    "micro_precision": 0.6470588235294118,
+    "micro_recall": 0.7719298245614035,
+    "sample_recall": 0.786231884057971,
+    "macro_recall": 0.6621857674489254,
+    "micro_f1": 0.704,
+    "macro_f1": 0.6322997416020673,
+    "unclear_accuracy": 0.42857142857142855
+  },
+  "per_category": {
+    "Technological Navigation": {
+      "labeled": 0,
+      "predicted": 3,
+      "found": 0,
+      "recall": null,
+      "precision": 0.0
+    },
+    "Physical Navigation": {
+      "labeled": 19,
+      "predicted": 24,
+      "found": 17,
+      "recall": 0.8947368421052632,
+      "precision": 0.7083333333333334
+    },
+    "Obtain and Understand Information": {
+      "labeled": 4,
+      "predicted": 6,
+      "found": 4,
+      "recall": 1.0,
+      "precision": 0.6666666666666666
+    },
+    "Document and Organize Information": {
+      "labeled": 1,
+      "predicted": 1,
+      "found": 0,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    "Cooperation, Coordination, and Negotiation": {
+      "labeled": 0,
+      "predicted": 2,
+      "found": 0,
+      "recall": null,
+      "precision": 0.0
+    },
+    "Communication Tasks": {
+      "labeled": 2,
+      "predicted": 0,
+      "found": 0,
+      "recall": 0.0,
+      "precision": null
+    },
+    "Teaching, Assessing, and Learning Physical Skills": {
+      "labeled": 1,
+      "predicted": 1,
+      "found": 1,
+      "recall": 1.0,
+      "precision": 1.0
+    },
+    "Creative Tasks": {
+      "labeled": 11,
+      "predicted": 10,
+      "found": 9,
+      "recall": 0.8181818181818182,
+      "precision": 0.9
+    },
+    "Caregiving and Domestic Labor": {
+      "labeled": 1,
+      "predicted": 1,
+      "found": 1,
+      "recall": 1.0,
+      "precision": 1.0
+    },
+    "Shopping and Entertainment": {
+      "labeled": 7,
+      "predicted": 3,
+      "found": 3,
+      "recall": 0.42857142857142855,
+      "precision": 1.0
+    },
+    "Specialized Visual Generation and Analysis": {
+      "labeled": 11,
+      "predicted": 17,
+      "found": 9,
+      "recall": 0.8181818181818182,
+      "precision": 0.5294117647058824
+    }
+  }
+}
