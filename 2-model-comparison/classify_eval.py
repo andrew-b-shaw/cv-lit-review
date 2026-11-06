@@ -11,10 +11,10 @@ its scores to <results-dir>/<model>_summary.json.
 Models are defined in classifiers.py; add new ones to MODELS there.
 
 Usage:
-    python classify_eval.py                       # run every model in MODELS
+    python classify_eval.py                       # every model in MODELS, on ../1-paper-scraping/pre_audit.csv
     python classify_eval.py --models qwen3.8-flash llama-3.3-70b
     python classify_eval.py --limit 10
-    python classify_eval.py --data ../1-paper-scraping/pre_audit.csv --results-dir results/pre_audit
+    python classify_eval.py --data taxonomy_labels_hand_labeled.csv --results-dir results/old_labels
 """
 
 import argparse
@@ -31,7 +31,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 
 from classifiers import MODELS
 
-DATA_PATH = Path(__file__).parent / "taxonomy_labels_hand_labeled.csv"
+DATA_PATH = Path(__file__).parent.parent / "1-paper-scraping" / "pre_audit.csv"
 TAXONOMY_PATH = Path(__file__).parent / "task_taxonomy.json"
 RESULTS_DIR = Path(__file__).parent / "results"
 MAX_CATEGORIES = 3

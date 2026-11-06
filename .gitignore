@@ -3,3 +3,5 @@ __pycache__
 .venv
 1-paper-scraping/introductions.jsonl
 1-paper-scraping/add_introductions.log
+3-paper-classification/*_progress.jsonl
+3-paper-classification/*.log

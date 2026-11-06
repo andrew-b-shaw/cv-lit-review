@@ -1,0 +1,46 @@
+{
+    "_notes": [
+        "Each term is a Python regular expression, matched case-insensitively against the fields below.",
+        "A paper matches a category if any of the category's terms appears in any of the fields.",
+        "Plain words work as-is ('robot' also matches 'robots' and 'robotic'). Use [\\s-] to allow a space or hyphen, \\b for a word boundary.",
+        "Category names must match the taxonomy exactly (2-model-comparison/task_taxonomy.json)."
+    ],
+    "fields": ["title", "abstract", "introduction"],
+    "categories": {
+        "Physical Navigation": [
+            "self[\\s-]driving",
+            "autonomous driving",
+            "robot",
+            "vehicle",
+            "embodied"
+        ],
+        "Creative Tasks": [
+            "(generating|editing|synthesizing) (image|video)",
+            "(image|video)[\\s-](generat|edit|synthesi)",
+            "text[\\s-]to[\\s-](image|video)",
+            "animat"
+        ],
+        "Obtain and Understand Information": [
+            "VQA",
+            "question[\\s-]answering",
+            "(visual|spatial|scene|document|chart|image|video)[\\s-]reasoning",
+            "(visual|spatial|scene|document|chart|image|video)[\\s-]understanding",
+            "(visual|spatial|scene|document|chart|image|video)[\\s-]comprehen",
+            "retrieval",
+            "captioning",
+            "classification",
+            "detection"
+        ],
+        "Specialized Visual Generation and Analysis": [
+            "medic",
+            "clinic",
+            "radiolog",
+            "patholog",
+            "histolog",
+            "microsop",
+            "tumor",
+            "cancer",
+            "doctor"
+        ]
+    }
+}
